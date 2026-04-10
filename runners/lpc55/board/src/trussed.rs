@@ -17,8 +17,21 @@ use trussed::platform::{consent, ui};
 // get user presence, this should be fine.
 // Used for Ctaphid.keepalive message status.
 static mut WAITING: bool = false;
+
+/// Probe-rs-writable static for automated user presence control.
+/// Write 1 to approve, 128 to deny. Placed in .uninit so it survives
+/// soft resets and has a stable address discoverable via symbol table.
+///
+/// Read the address with: `probe-rs read <addr>`
+/// Approve button:       `probe-rs write b8 <addr> 1`
+/// Deny button:          `probe-rs write b8 <addr> 128`
+#[cfg(feature = "test-up-control")]
+#[unsafe(link_section = ".uninit")]
+#[unsafe(no_mangle)]
+pub static mut UP_CONTROL: u8 = 0;
 pub struct UserPresenceStatus {}
 impl UserPresenceStatus {
+    #[cfg(not(feature = "test-up-control"))]
     pub(crate) fn set_waiting(waiting: bool) {
         unsafe { WAITING = waiting };
     }
@@ -82,6 +95,23 @@ BUTTONS: Press + Edge,
 RGB: RgbLed,
 {
     fn check_user_presence(&mut self) -> consent::Level {
+        #[cfg(feature = "test-up-control")]
+        {
+            // Read from probe-rs-writable static. One-shot values (< 128)
+            // are consumed after reading.
+            let val = unsafe { core::ptr::read_volatile(&raw const UP_CONTROL) };
+            if val > 0 && val < 128 {
+                unsafe { core::ptr::write_volatile(&raw mut UP_CONTROL, 0); }
+            }
+            return match val {
+                0 => consent::Level::Normal,
+                1 | 129 => consent::Level::Normal,
+                128 => consent::Level::None,
+                _ => consent::Level::None,
+            };
+        }
+
+        #[cfg(not(feature = "test-up-control"))]
         match &mut self.buttons {
             Some(buttons) => {
 

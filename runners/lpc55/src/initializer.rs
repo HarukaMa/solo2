@@ -16,7 +16,9 @@ use usb_device::device::{UsbDeviceBuilder, UsbVidPid};
 use interchange::Interchange;
 use trussed::platform::UserInterface;
 
+#[cfg(not(feature = "test-up-control"))]
 use board::traits::buttons;
+#[cfg(not(feature = "test-up-control"))]
 use board::traits::buttons::Press;
 use board::traits::rgb_led::RgbLed;
 
@@ -203,6 +205,14 @@ impl Initializer {
         three_buttons: &board::ThreeButtons,
         timer: &mut Timer<T>,
     ) -> bool {
+        #[cfg(feature = "test-up-control")]
+        let _ = (three_buttons, timer);
+        #[cfg(feature = "test-up-control")]
+        {
+            false
+        }
+        #[cfg(not(feature = "test-up-control"))]
+        {
         // Boot to bootrom if buttons are all held for 5s
         timer.start(5_000_000.microseconds());
         while three_buttons.is_pressed(buttons::Button::A)
@@ -217,6 +227,7 @@ impl Initializer {
         timer.cancel().ok();
 
         false
+        }
     }
 
     fn validate_cfpa(

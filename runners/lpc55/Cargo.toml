@@ -100,6 +100,8 @@ serial = []
 reconfigure-nfc = []
 no-clock-controller = ["board/no-clock-controller"]
 enable-clock-controller-signal-pin = ["board/enable-clock-controller-signal-pin"]
+test-up-control = ["board/test-up-control"]
+fast-button-timeout = ["fido-authenticator/fast-button-timeout"]
 # very-twitchy-mouse = ["usbd-hid"]
 
 # patch dependencies like so to test local changes
@@ -123,3 +125,4 @@ opt-level = 2
 # This can be undone once we can move away from littlefs2 0.3.2
 [patch.crates-io]
 littlefs2 = {path = "vendor/littlefs2"}
+fido-authenticator = { path = "../../vendor/fido-authenticator" }

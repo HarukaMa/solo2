@@ -9,6 +9,7 @@ chacha20 = { version = "0.7", features = ["rng"] }
 delog = "0.1.0"
 embedded-hal = { version = "0.2", features = ["unproven"] }
 generic-array = "0.14.3"
+heapless = "0.7"
 interchange = "0.2.2"
 nb = "1"
 
@@ -16,7 +17,7 @@ admin-app = "0.1"
 apdu-dispatch = "0.1.1"
 ctap-types = "0.1"
 ctaphid-dispatch = "0.1.1"
-fido-authenticator = { version = "0.1.1", features = ["dispatch"], optional = true }
+fido-authenticator = { version = "0.1.1", features = ["dispatch"] }
 piv-authenticator = { git = "https://github.com/solokeys/piv-authenticator" }
 trussed = { version = "0.1", features = ["clients-3"] }
 
@@ -29,11 +30,33 @@ ndef-app = {path = "./../../components/ndef-app"}
 # storage
 littlefs2 = "0.3.1"
 
+[dev-dependencies]
+serial_test = "2"
+hidapi = "2.6"
+paste = "1"
+serde_cbor = "0.11"
+p256 = { version = "0.13", features = ["ecdh"] }
+rand_core = "0.6"
+sha2 = "0.10"
+hmac = "0.12"
+aes = "0.8"
+cbc = "0.1"
+cipher = "0.4"
+
 [features]
 default = []
 
 # Use to auto-succeed every user presence check
-no-buttons= []
+no-buttons = []
+
+# Enables programmatic control of user presence checks for testing.
+# When active, check_user_presence() reads from a shared atomic instead
+# of requiring a physical button press. MUST NOT be enabled in production.
+test-up-control = []
+
+# Reduces the FIDO2 user presence timeout from 30s to 5s.
+# Useful for tests that exercise the deny/timeout path.
+fast-button-timeout = ["fido-authenticator/fast-button-timeout"]
 
 # Reconfigure the NFC chip in any case
 reconfigure-nfc = []
@@ -45,10 +68,17 @@ log-debug = []
 log-warn = []
 log-error = []
 
-# patch dependencies like so to test local changes
+[patch.crates-io]
+fido-authenticator = { path = "../../vendor/fido-authenticator" }
 
 [profile.release]
 codegen-units = 1
 opt-level = "z"
 incremental = false
 debug = true
+
+[profile.test]
+opt-level = 2
+
+[profile.dev]
+opt-level = 2

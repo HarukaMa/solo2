@@ -22,6 +22,7 @@ solo2 = []
 no-buttons = []
 no-clock-controller = []
 enable-clock-controller-signal-pin = []
+test-up-control = []
 
 [profile.release]
 codegen-units = 1
