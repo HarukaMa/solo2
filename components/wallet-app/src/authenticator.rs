@@ -144,6 +144,9 @@ where
         let cmd = command.try_into()?;
 
         match cmd {
+            Command::GetAppAndVersion => reply
+                .extend_from_slice(b"\x01\x08Ethereum\x051.7.2\x00")
+                .map_err(|_| Status::NotEnoughMemory),
             Command::GetAppConfiguration => self.get_app_configuration(reply),
             Command::GetPubkey(get_pubkey) => self.get_pubkey(get_pubkey, reply),
             Command::SignMessage { p2, chunk } => self.sign_message(p2, chunk, false, reply),

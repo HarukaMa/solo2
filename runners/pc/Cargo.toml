@@ -50,6 +50,7 @@ ndef-app.workspace = true
 littlefs2.workspace = true
 
 [dev-dependencies]
+critical-section = { version = "1", features = ["std"] }
 fido-authenticator = { workspace = true, features = ["mldsa44"] }
 # `test-client` adds Serialize impls on CTAP2 Request types and Deserialize
 # on Response types — needed by the host-side test harness (we're the

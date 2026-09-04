@@ -20,12 +20,28 @@ use wallet_app::Authenticator;
 
 /// One wallet APDU round-trip. `Ok(body)` on `0x9000`, else `Err(sw)`.
 pub trait Wallet {
-    fn transact(&mut self, ins: u8, p1: u8, p2: u8, data: &[u8]) -> Result<Vec<u8>, u16>;
+    fn transact_raw(&mut self, apdu: &[u8]) -> Result<Vec<u8>, u16>;
+
+    fn transact_cla(
+        &mut self,
+        cla: u8,
+        ins: u8,
+        p1: u8,
+        p2: u8,
+        data: &[u8],
+    ) -> Result<Vec<u8>, u16> {
+        let apdu = build_apdu(cla, ins, p1, p2, data);
+        self.transact_raw(&apdu)
+    }
+
+    fn transact(&mut self, ins: u8, p1: u8, p2: u8, data: &[u8]) -> Result<Vec<u8>, u16> {
+        self.transact_cla(0xe0, ins, p1, p2, data)
+    }
 }
 
-/// Build a wallet APDU (proprietary CLA `0xE0`), short or extended Lc.
-fn build_apdu(ins: u8, p1: u8, p2: u8, data: &[u8]) -> Vec<u8> {
-    let mut b = vec![0xE0u8, ins, p1, p2];
+/// Build a wallet APDU, short or extended Lc.
+fn build_apdu(cla: u8, ins: u8, p1: u8, p2: u8, data: &[u8]) -> Vec<u8> {
+    let mut b = vec![cla, ins, p1, p2];
     if data.is_empty() {
         // no Lc
     } else if data.len() <= 255 {
@@ -72,9 +88,8 @@ struct SimWallet<'a> {
 }
 
 impl Wallet for SimWallet<'_> {
-    fn transact(&mut self, ins: u8, p1: u8, p2: u8, data: &[u8]) -> Result<Vec<u8>, u16> {
-        let bytes = build_apdu(ins, p1, p2, data);
-        let cmd = Command::<4608>::try_from(bytes.as_slice()).map_err(|_| 0x6700u16)?;
+    fn transact_raw(&mut self, apdu: &[u8]) -> Result<Vec<u8>, u16> {
+        let cmd = Command::<4608>::try_from(apdu).map_err(|_| 0x6700u16)?;
         let mut reply = Data::<512>::new();
         match self.auth.respond(&cmd, &mut reply) {
             Ok(()) => Ok(reply.as_slice().to_vec()),
@@ -111,9 +126,7 @@ impl DeviceWallet {
 }
 
 impl Wallet for DeviceWallet {
-    fn transact(&mut self, ins: u8, p1: u8, p2: u8, data: &[u8]) -> Result<Vec<u8>, u16> {
-        let apdu = build_apdu(ins, p1, p2, data);
-
+    fn transact_raw(&mut self, apdu: &[u8]) -> Result<Vec<u8>, u16> {
         // Frame the APDU into 64-byte HID packets (seq 0 carries the 2-byte
         // total length); write each with the macOS report-id 0 prefix.
         let total = apdu.len();

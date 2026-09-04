@@ -48,6 +48,10 @@ const ETH_PATH: [u8; 21] = [
     0x00, 0x00, 0x00, 0x00, // 0
 ];
 
+const CLA_LEDGER_OS: u8 = 0xb0;
+const INS_GET_APP_AND_VERSION: u8 = 0x01;
+const SW_INCORRECT_DATA: u16 = 0x6a80;
+
 const INS_ETH_GET_ADDRESS: u8 = 0x02;
 const INS_ETH_SIGN_PERSONAL: u8 = 0x08;
 const INS_GET_APP_CONFIGURATION: u8 = 0x04;
@@ -93,6 +97,21 @@ fn expected_uncompressed(path: &[u8]) -> [u8; 65] {
     let dp = wallet_app::DerivationPath::parse(path).unwrap();
     let priv_key = wallet_app::key_derivation::derive_secp256k1_priv(&state, &dp).unwrap();
     wallet_app::key_derivation::secp256k1_pubkey_uncompressed(&priv_key).unwrap()
+}
+
+#[test]
+#[serial]
+fn ledger_get_app_and_version() {
+    with_wallet(|w| {
+        assert_eq!(
+            w.transact_raw(&[CLA_LEDGER_OS, INS_GET_APP_AND_VERSION, 0x00, 0x00, 0x00]),
+            Ok(b"\x01\x08Ethereum\x051.7.2\x00".to_vec())
+        );
+        assert_eq!(
+            w.transact_raw(&[CLA_LEDGER_OS, INS_GET_APP_AND_VERSION, 0x01, 0x00, 0x00]),
+            Err(SW_INCORRECT_DATA)
+        );
+    });
 }
 
 // ── seed → pubkey ────────────────────────────────────────────────────────────

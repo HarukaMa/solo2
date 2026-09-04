@@ -4165,6 +4165,7 @@ dependencies = [
  "cbor-smol",
  "chacha20 0.7.1",
  "cosey",
+ "critical-section",
  "ctap-types",
  "ctaphid-dispatch",
  "delog",

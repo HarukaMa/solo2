@@ -5,6 +5,8 @@ use iso7816::Status;
 /// Wallet app commands
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Command<'l> {
+    /// Ledger OS: get the active app name and version.
+    GetAppAndVersion,
     /// Get application configuration
     GetAppConfiguration,
     /// Get public key for a derivation path
@@ -123,6 +125,17 @@ impl<'l, const C: usize> TryFrom<&'l iso7816::Command<C>> for Command<'l> {
 
         // Check CLA first (allow both 0xE0 for proprietary and 0x00 for standard ISO7816)
         let cla_byte: u8 = class.into_inner();
+        // Ledger device-management clients poll the active app with B0 01.
+        if cla_byte == 0xb0 {
+            if instruction_byte != 0x01 {
+                return Err(Status::InstructionNotSupportedOrInvalid);
+            }
+            if p1 != 0 || p2 != 0 || !data.is_empty() {
+                return Err(Status::IncorrectDataParameter);
+            }
+            return Ok(Command::GetAppAndVersion);
+        }
+
         if cla_byte != APDU_CLA && cla_byte != 0x00 {
             return Err(Status::ClassNotSupported);
         }
